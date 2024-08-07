@@ -1,4 +1,4 @@
-package com.mydapp
+package com.devgarry.dApp
 
 import android.os.Build
 import android.os.Bundle

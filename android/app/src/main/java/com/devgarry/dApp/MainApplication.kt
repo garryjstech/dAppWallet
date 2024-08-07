@@ -1,4 +1,4 @@
-package com.mydapp
+package com.devgarry.dApp
 
 import android.app.Application
 import android.content.res.Configuration

@@ -2,6 +2,15 @@
   "expo": {
     "name": "MyDApp",
     "slug": "MyDApp",
-    "version": "1.0.0"
+    "version": "1.0.0",
+    "android": {
+      "package": "com.devgarry.dApp"
+    },
+    "ios": {
+      "bundleIdentifier": "com.devgarry.dApp"
+    },
+    "plugins": [
+      "expo-secure-store"
+    ]
   }
 }
