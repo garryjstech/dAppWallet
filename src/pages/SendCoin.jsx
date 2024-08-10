@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import Colors from '../constents/Colors'
 import { moderateScale, scale, verticalScale } from 'react-native-size-matters'
-import { useNavigation } from '@react-navigation/native'
+import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native'
 import { ICONS } from '../constents/Images'
 import AntDesign from '@expo/vector-icons/AntDesign';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
@@ -12,6 +12,7 @@ import { BottomSheetModal, BottomSheetView, BottomSheetBackdrop } from '@gorhom/
 import { INFURA_PROJECT_ID } from '../config/config'
 import { ethers } from 'ethers';
 import * as SecureStore from 'expo-secure-store';
+import { useAlert } from '../contexts/ToasterContext'
 
 
 
@@ -20,38 +21,34 @@ import * as SecureStore from 'expo-secure-store';
 
 export default function SendCoin() {
     const navigation = useNavigation();
+    const route = useRoute();
+    const INFURA_URL = `https://sepolia.infura.io/v3/${INFURA_PROJECT_ID}`;
+    const ACCOUNT_ADDRESS = `0xd45f34rgteg6gt4tret34erg54ter34tre43443f`
+    const { showError } = useAlert();
+
     const [isFromAccountAddress, setIsFromAccountAddress] = useState('')
-    const [isFromAccountName, setIsFromAccountName] = useState('')
-    const [isFromAccountImage, setIsFromAccountImage] = useState('')
+    const [isFromAccountName, setIsFromAccountName] = useState(1)
+    const [isFromAccountImage, setIsFromAccountImage] = useState([])
 
     const [isAccountAddress, setIsAccountAddress] = useState('')
     const [isAccountName, setIsAccountName] = useState('')
     const [isAccountImage, setIsAccountImage] = useState('')
 
-    let accountOneAddress = `0xd45f34rgteg6gt4tret34erg54ter34tre43443f`
 
-    let arrayData = [
-        {
-            accountName: 'Account 1',
-            accountAddress: '0xqe134e324fgd56sdgf56hfg80dfgjfxnfe5y6r56',
-            acoountImage: ''
-        },
-        {
-            accountName: 'Account 2',
-            accountAddress: '0xq346r45gd43fdgyegdy4ftr6tfu6rfh6rur4etre',
-            acoountImage: ''
-        }, {
-            accountName: 'Account 3',
-            accountAddress: '0xqe134e324fgd56sdgf56hfg80dfgjfxnfe5y6r56',
-            acoountImage: ''
-        },
-        {
-            accountName: 'Account 4',
-            accountAddress: '0xq346r45gd43fdgyegdy4ftr6tfu6rfh6rur4etre',
-            acoountImage: ''
-        },
+    const [isWallet, setWallet] = useState('');
+    const [balance, setBalance] = useState(null);
 
-    ]
+    const [loading, setLoading] = useState(false);
+    const [info, setInfo] = useState('');
+    const [isPrivateKey, setPrivateKey] = useState([]);
+    const [walletAddresses, setWalletAddresses] = useState([]);
+
+    const [walletData, setWalletData] = useState([]);
+    const [tokenDetails, setTokenDetails] = useState();
+    const [searchQuery, setSearchQuery] = useState('');
+    // console.log({ walletData });
+
+
 
     let resetData = () => {
         setIsAccountAddress(null)
@@ -59,21 +56,13 @@ export default function SendCoin() {
         setIsAccountImage(null)
     }
 
-    const setFromWallet = async () => {
-        // console.log(arrayData);
-        setIsFromAccountAddress(walletAddresses[0])
-        setIsFromAccountName('1')
-        setIsFromAccountImage()
-    }
-    useEffect(() => {
-        setFromWallet()
-    }, [])
 
 
     //bottomsheet
     const [closeSheet, setCloseSheet] = useState(false);
     const bottomSheetModalRef = useRef(null);
-    const snapPoints = ['40%', '40%']; // variables
+    const snapPoints = ['40%', '40%'];
+    const snapPoints1 = ['30%', '30%'];
     const handlePresetModal = useCallback(() => { bottomSheetModalRef.current?.present(); }, []);
     const handleClosePress = useCallback(() => { bottomSheetModalRef.current?.close(); }, []);
 
@@ -87,59 +76,141 @@ export default function SendCoin() {
 
 
     //// main functions
-    const INFURA_URL = `https://sepolia.infura.io/v3/${INFURA_PROJECT_ID}`;
+    useFocusEffect(
+        useCallback(() => {
+            getCoinBalance()
+            fetchBalance();
+            fetchAddresses()
+                .then(() => {
+                    if (isFromAccountAddress) {
+                        fetchBalance();
+                    }
+                });
+        }, [route, loading])
+    );
 
-    const [loading, setLoading] = useState(false);
-    const [info, setInfo] = useState('');
-    const [isWallet, setWallet] = useState('');
-    const [isPrivateKey, setPrivateKey] = useState([]);
-    const [walletAddresses, setWalletAddresses] = useState([]); // Array to store wallet addresses
 
-    // console.log({ loading, info, isWallet, isPrivateKey, walletAddresses });
-    console.log({ walletAddresses, isPrivateKey });
 
     useEffect(() => {
-        fetchAddresses();
-    }, [loading]);
+        const fetchData = async () => {
+            const walletDataArray = await createDataArray();
+            setWalletData(walletDataArray);
+        };
+        fetchData();
+    }, [bottomTab, loading, route]);
+
+
+    const fetchBalance = async () => {
+        try {
+            if (isFromAccountAddress) {
+                let infuraProvider = new ethers.providers.JsonRpcProvider(INFURA_URL);
+                const balance = await infuraProvider?.getBalance(isFromAccountAddress);
+                setBalance(ethers?.utils?.formatEther(balance));
+            }
+        } catch (error) {
+            console.log(error?.message);
+        }
+    };
+
+    const getCoinBalance = async () => {
+        let URL = `https://api.binance.com/api/v3/ticker/price?symbol=ETHUSDT`
+        fetch(URL).then(response => response.json())
+            .then(data => { setTokenDetails(data) });
+    }
 
     const fetchAddresses = async () => {
-        let result = await SecureStore.getItemAsync('ArrayAddress');
-        if (result) {
-            const addresses = JSON.parse(result);
+        let ArrayAddress = await SecureStore.getItemAsync('ArrayAddress');
+        let ArrayImage = await SecureStore.getItemAsync('ArrayImage');
+        if (ArrayAddress) {
+            const addresses = JSON.parse(ArrayAddress);
             setWalletAddresses(addresses);
-            setIsFromAccountAddress(addresses[0])
-            setIsFromAccountName('1')
+            if (addresses.length > 0) {
+                setIsFromAccountAddress(addresses[0]);
+                setIsFromAccountName('1')
+            }
+        }
+        if (ArrayImage) {
+            const img = JSON.parse(ArrayImage);
+            if (img.length > 0) {
+                setIsFromAccountImage(img[0]);
+            }
         }
     };
 
     const generateWallet = async () => {
         setLoading(true);
+
+        // Create a new wallet
         const newWallet = ethers.Wallet.createRandom();
-        const newAddress = newWallet?.address;
-        const newPrivateKey = newWallet?.privateKey;
-        const accountImage = refreshImage()
+        const newAddress = newWallet.address;
+        const newPrivateKey = newWallet.privateKey;
+        const accountImage = refreshImage(); // Assume refreshImage() returns a valid image URL
 
-        setWallet(newAddress);
-        setInfo(newWallet.mnemonic);
+        try {
+            // Retrieve current data from SecureStore
+            const currentAddresses = JSON.parse(await SecureStore.getItemAsync("ArrayAddress")) || [];
+            const currentPrivateKeys = JSON.parse(await SecureStore.getItemAsync("ArrayPrivateKeys")) || [];
+            const currentImages = JSON.parse(await SecureStore.getItemAsync("ArrayImage")) || [];
 
-        setPrivateKey(async (prevkeys) => {
-            const updatedPrivateKeys = [...prevkeys, newPrivateKey]
-            await SecureStore.setItemAsync("ArrayPrivateKeys", JSON.stringify(updatedPrivateKeys))
-            return updatedPrivateKeys;
-        });
+            // Update state and SecureStore
+            const updatedAddresses = [...currentAddresses, newAddress];
+            const updatedPrivateKeys = [...currentPrivateKeys, newPrivateKey];
+            const updatedImages = [...currentImages, accountImage];
 
-        setWalletAddresses(async (prevAddresses) => {
-            const updatedAddresses = [...prevAddresses, newAddress];
-            await SecureStore.setItemAsync("ArrayAddress", JSON.stringify(updatedAddresses))
-            return updatedAddresses;
-        });
-        setIsFromAccountImage(async (prevImg) => {
-            const updatedImages = [...prevImg, accountImage];
-            await SecureStore.setItemAsync("ArrayImage", JSON.stringify(updatedImages))
-            return updatedAddresses;
-        });
-        setBottomTab(0)
-        setLoading(false);
+            // Update SecureStore
+            await SecureStore.setItemAsync("ArrayAddress", JSON.stringify(updatedAddresses));
+            await SecureStore.setItemAsync("ArrayPrivateKeys", JSON.stringify(updatedPrivateKeys));
+            await SecureStore.setItemAsync("ArrayImage", JSON.stringify(updatedImages));
+
+            // Update state
+            setWallet(newAddress);
+            setInfo(newWallet.mnemonic);
+            setPrivateKey(updatedPrivateKeys);
+            setWalletAddresses(updatedAddresses);
+            setIsFromAccountImage(updatedImages);
+
+            setBottomTab(0);
+        } catch (error) {
+            console.log(error.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const fetchSecureStoreData = async () => {
+        try {
+
+            const rawAddresses = await SecureStore.getItemAsync('ArrayAddress');
+            const rawImages = await SecureStore.getItemAsync('ArrayImage');
+            const rawPrivateKeys = await SecureStore.getItemAsync('ArrayPrivateKeys');
+
+            const addresses = rawAddresses ? JSON.parse(rawAddresses) : [];
+            const images = rawImages ? JSON.parse(rawImages) : [];
+            const privateKeys = rawPrivateKeys ? JSON.parse(rawPrivateKeys) : [];
+
+            const publicKeys = privateKeys.map(key => {
+                const wallet = new ethers.Wallet(key);
+                return wallet.publicKey;
+            });
+
+            return { addresses, images, publicKeys, privateKeys };
+        } catch (error) {
+            console.log('Error fetching or parsing SecureStore data:', error.message);
+            return { addresses: [], images: [], publicKeys: [], privateKeys: [] };
+        }
+    };
+
+    const createDataArray = async () => {
+        const { addresses, images, publicKeys, privateKeys } = await fetchSecureStoreData();
+
+        const dataArray = addresses.map((address, index) => ({
+            address,
+            image: images[index] || '',
+            publicKey: publicKeys[index] || '',
+            privateKey: privateKeys[index] || '',
+        }));
+
+        return dataArray;
     };
 
     // let deleteWalletAddress = async () => {
@@ -158,7 +229,22 @@ export default function SendCoin() {
         return imageUrl
     };
 
+    const handleSearch = (text) => {
+        setSearchQuery(text);
+    };
 
+    const filteredData = walletData.filter((item) =>
+        item?.address?.toLowerCase()?.includes(searchQuery.toLowerCase()) ||
+        item?.publicKey?.toLowerCase()?.includes(searchQuery.toLowerCase())
+    );
+    // console.log({ isAccountAddress });
+    const handleNextPage = async () => {
+        if (isAccountAddress === "" || isAccountAddress === null || isAccountAddress === undefined) {
+            showError('Please select account to continue!')
+        } else {
+            navigation.navigate('SendAmmount', { from: isFromAccountAddress, fromImage: isFromAccountImage, fromName: isFromAccountName, to: isAccountAddress, toImage: isAccountImage, toName: isAccountName })
+        }
+    }
     return (
         <>
             <SafeAreaView style={styles.root}>
@@ -182,7 +268,7 @@ export default function SendCoin() {
                         <Pressable style={styles.bar_container}>
                             <View style={styles.bar_inner}>
                                 <View style={styles.icon__}>
-                                    <Image source={ICONS.jsLogo} style={styles.icon} resizeMode='contain' />
+                                    <Image source={isFromAccountImage ? { uri: isFromAccountImage } : ICONS.jsLogo} style={styles.icon} resizeMode='contain' />
                                 </View>
                                 <View style={{ width: '80%', gap: scale(1) }}>
                                     <Text style={styles.text_14_w}>{isFromAccountName && 'Account ' + isFromAccountName}</Text>
@@ -191,7 +277,7 @@ export default function SendCoin() {
                                         placeholderTextColor={Colors.PLACEHOLDER}
                                         style={styles.input_}
                                         editable={false}
-                                        value={isFromAccountAddress && (isFromAccountAddress).slice(0, 8) + '...' + (isFromAccountAddress).slice(-8)}
+                                        value={isFromAccountAddress && (isFromAccountAddress).slice(0, 6) + '...' + (isFromAccountAddress).slice(-6)}
                                     />
                                 </View>
                             </View>
@@ -209,15 +295,16 @@ export default function SendCoin() {
                             {isAccountAddress ?
                                 <View style={styles.bar_inner}>
                                     <View style={styles.icon__}>
-                                        <Image source={ICONS.jsLogo} style={styles.icon} resizeMode='contain' />
+                                        <Image source={isAccountImage ? { uri: isAccountImage } : ICONS.jsLogo} style={styles.icon} resizeMode='contain' />
                                     </View>
                                     <View style={{ width: '80%', gap: scale(1) }}>
                                         <Text style={styles.text_14_w}>{isAccountName && isAccountName}</Text>
                                         <TextInput
-                                            placeholder='Search public address (0x), or ENS'
+                                            placeholder=''
                                             placeholderTextColor={Colors.PLACEHOLDER}
                                             style={styles.input_}
-                                            value={isAccountAddress && (isAccountAddress).slice(0, 8) + '...' + (isAccountAddress).slice(-8)}
+                                            value={isAccountAddress && (isAccountAddress).slice(0, 6) + '...' + (isAccountAddress).slice(-6)}
+
                                         />
                                     </View>
                                 </View>
@@ -226,7 +313,8 @@ export default function SendCoin() {
                                     placeholder='Search public address (0x), or ENS'
                                     placeholderTextColor={Colors.PLACEHOLDER}
                                     style={[styles.input_, { width: '85%' }]}
-                                    value={isAccountAddress && (isAccountAddress).slice(0, 8) + '...' + (isAccountAddress).slice(-8)}
+                                    value={searchQuery}
+                                    onChangeText={handleSearch}
                                 />}
                             {!isAccountAddress ?
                                 <TouchableOpacity style={{ padding: scale(8), width: '15%' }}>
@@ -247,17 +335,17 @@ export default function SendCoin() {
                     <View style={styles.content_}>
                         <Text style={styles.text_14_w}>Your Accounts</Text>
                         <FlatList
-                            data={walletAddresses}
+                            data={filteredData}
                             renderItem={({ item, index }) => {
                                 return (
-                                    <TouchableOpacity style={styles.account_bar} onPress={() => { setIsAccountAddress(item); setIsAccountName(`Account ${index + 1}`); setIsAccountImage() }}>
+                                    <TouchableOpacity style={styles.account_bar} onPress={() => { setIsAccountAddress(item?.address); setIsAccountName(`Account ${index + 1}`); setIsAccountImage(item?.image) }}>
                                         <View style={styles.row_}>
                                             <View style={styles.icon__}>
-                                                <Image source={ICONS.jsLogo} style={styles.icon} resizeMode='contain' />
+                                                <Image source={item?.image ? { uri: item?.image } : ICONS.jsLogo} style={styles.icon} resizeMode='contain' />
                                             </View>
                                             <View style={{ gap: scale(5) }}>
                                                 <Text style={styles.text_14_num}>{`Account ${index + 1}`}</Text>
-                                                <Text style={styles.text_12_g}>{(item).slice(0, 8) + '...' + (item).slice(-8)}</Text>
+                                                <Text style={styles.text_12_g}>{(item?.address).slice(0, 8) + '...' + (item?.address).slice(-8)}</Text>
                                             </View>
                                         </View>
                                     </TouchableOpacity>
@@ -268,7 +356,7 @@ export default function SendCoin() {
 
                 {/* footer button */}
                 <View style={styles.footer}>
-                    <TouchableOpacity style={styles.button__} onPress={() => navigation.navigate('SendAmmount', { from: isFromAccountAddress, to: isAccountAddress })}>
+                    <TouchableOpacity style={styles.button__} onPress={handleNextPage}>
                         <Text style={styles.button_txt}>Next</Text>
                     </TouchableOpacity>
                 </View>
@@ -278,7 +366,7 @@ export default function SendCoin() {
                 ref={bottomSheetModalRef}
                 animateOnMount={true}
                 index={1}
-                snapPoints={snapPoints}
+                snapPoints={bottomTab === 1 ? snapPoints1 : snapPoints}
                 onChange={handleSheetChanges}
                 enableContentPanningGesture={false}
                 enableHandlePanningGesture={false}
@@ -294,20 +382,20 @@ export default function SendCoin() {
 
                             <View style={[styles.content_, { height: scale(210) }]}>
                                 <FlatList
-                                    data={walletAddresses}
+                                    data={walletData}
                                     // ListFooterComponent={FotterList}
                                     style={{}}
                                     showsVerticalScrollIndicator={false}
                                     renderItem={({ item, index }) => {
                                         return (
-                                            <TouchableOpacity style={styles.account_bar} onPress={() => { setIsFromAccountAddress(item); setIsFromAccountName(index + 1); setIsFromAccountImage(); handleClosePress() }}>
+                                            <TouchableOpacity style={styles.account_bar} onPress={() => { setIsFromAccountAddress(item?.address); setIsFromAccountName(index + 1); setIsFromAccountImage(item?.image); handleClosePress() }}>
                                                 <View style={styles.row_}>
                                                     <View style={styles.icon__}>
-                                                        <Image source={ICONS.jsLogo} style={styles.icon} resizeMode='contain' />
+                                                        <Image source={item?.image ? { uri: item?.image } : ICONS.jsLogo} style={styles.icon} resizeMode='contain' />
                                                     </View>
                                                     <View style={{ gap: scale(5) }}>
                                                         <Text style={styles.text_14_num}>{`Account ${index + 1}`}</Text>
-                                                        <Text style={styles.text_12_g}>{(item).slice(0, 8) + '...' + (item).slice(-8)}</Text>
+                                                        <Text style={styles.text_12_g}>{(item?.address).slice(0, 8) + '...' + (item?.address).slice(-8)}</Text>
                                                     </View>
                                                 </View>
                                             </TouchableOpacity>
@@ -333,15 +421,15 @@ export default function SendCoin() {
                                         <Text style={styles.text_14_w}>Add new account</Text>
                                     </TouchableOpacity>
 
-                                    <TouchableOpacity style={[styles.row_, styles.bt_btn]} >
+                                    <TouchableOpacity style={[styles.row_, styles.bt_btn]} onPress={() => { navigation.navigate('ImportAccount'); handleClosePress(); setBottomTab(0) }}>
                                         <AntDesign name="clouddownloado" size={scale(18)} color={Colors.WHITE} />
                                         <Text style={styles.text_14_w}>Import account</Text>
                                     </TouchableOpacity>
 
-                                    <TouchableOpacity style={[styles.row_, styles.bt_btn]} >
+                                    {/* <TouchableOpacity style={[styles.row_, styles.bt_btn]} >
                                         <MaterialCommunityIcons name="wallet-plus-outline" size={scale(18)} color={Colors.WHITE} />
                                         <Text style={styles.text_14_w}>Add hardware Wallet</Text>
-                                    </TouchableOpacity>
+                                    </TouchableOpacity> */}
                                 </View>
                             </>
                             : null}
@@ -382,11 +470,7 @@ const styles = StyleSheet.create({
         fontFamily: 'LatoBlack',
         color: Colors.WHITE
     },
-    text_12_g: {
-        fontSize: scale(12),
-        fontFamily: 'RalewaySemiBold',
-        color: Colors.GRAY_05
-    },
+
     text_13_pr: {
         fontSize: scale(13),
         fontFamily: 'RalewayBold',
@@ -394,7 +478,7 @@ const styles = StyleSheet.create({
     },
     text_12_g: {
         fontSize: scale(12),
-        fontFamily: 'RalewaySemiBold',
+        fontFamily: 'LatoBold',
         color: Colors.GRAY_05
     },
     text_16_w: {
@@ -464,7 +548,7 @@ const styles = StyleSheet.create({
     },
     input_: {
         fontSize: scale(12),
-        fontFamily: 'RalewayBold',
+        fontFamily: 'LatoBold',
         color: Colors.WHITE,
         // width: '80%'
 

@@ -19,7 +19,7 @@ const WalletHeader = () => {
 
             <TouchableOpacity style={styles.center_content}>
                 <View style={styles.dropdown_}>
-                    <Image source={ICONS.logo_} style={{ width: scale(20), height: scale(20), borderRadius: scale(20 / 2) }} resizeMode='contain' />
+                    <Image source={{ uri: 'https://cdn.icon-icons.com/icons2/2429/PNG/512/ethereum_logo_icon_147293.png' }} style={{ width: scale(20), height: scale(20), borderRadius: scale(20 / 2) }} resizeMode='contain' />
                     <Text style={styles.network_text}>Ethereum Mainnet</Text>
                     <AntDesign name="down" size={scale(14)} color={Colors.WHITE} />
                 </View>

@@ -8,6 +8,7 @@ import AntDesign from '@expo/vector-icons/AntDesign';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { INFURA_PROJECT_ID } from '../config/config'
 import { ethers } from 'ethers';
+import { useAlert } from '../contexts/ToasterContext'
 
 
 
@@ -20,8 +21,9 @@ const SendAmmount = () => {
     const navigation = useNavigation();
     let route = useRoute();
     let addresses = route.params;
-    const [isAmount, setIsAmount] = useState(0);
+    const { showError } = useAlert();
 
+    const [isAmount, setIsAmount] = useState(0);
     const [isWallet, setWallet] = useState('');
     const [balance, setBalance] = useState(0);
     const [tokenDetails, setTokenDetails] = useState();
@@ -54,6 +56,17 @@ const SendAmmount = () => {
             console.error('Error fetching balance:', error);
         }
     };
+
+    // console.log({ addresses });
+    const handleNextPage = async () => {
+        // console.log("isAmount==>", isAmount);
+
+        if (addresses === "" || addresses === null || addresses === undefined || (isAmount === 0)) {
+            showError('Amount should be greater then 0')
+        } else {
+            navigation.navigate('SendAmountConfirm', { addresses, isAmount })
+        }
+    }
 
 
     return (
@@ -112,7 +125,7 @@ const SendAmmount = () => {
                     </View>
 
                     {/* warrninig message */}
-                    {balance < 0 &&
+                    {balance == 0 &&
                         <TouchableOpacity style={styles.warrning_contianer}>
                             <Text style={styles.text_10_w}>insufficient funds</Text>
                             <Text style={styles.text_12_bold}>Buy more</Text>
@@ -125,7 +138,7 @@ const SendAmmount = () => {
 
                 {/* footer button */}
                 <View style={styles.footer}>
-                    <TouchableOpacity style={styles.button__} onPress={() => navigation.navigate('SendAmountConfirm', { addresses, isAmount })}>
+                    <TouchableOpacity style={styles.button__} onPress={handleNextPage}>
                         <Text style={styles.button_txt}>Next</Text>
                     </TouchableOpacity>
                 </View>

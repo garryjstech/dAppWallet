@@ -181,11 +181,10 @@ const styles = StyleSheet.create({
     },
     section_1: {
         height: '50%',
-        backgroundColor: '#4c669f'
+        backgroundColor: Colors.SECONDRY
     },
     section_2: {
         height: '50%',
-        // backgroundColor: '#192f6a',
         paddingVertical: verticalScale(20),
         paddingHorizontal: moderateScale(16)
     },

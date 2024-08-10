@@ -224,8 +224,8 @@ const Wallet = () => {
     const [bottomTab, setBottomTab] = useState(0)
     const [closeSheet, setCloseSheet] = useState(false);
     const bottomSheetModalRef = useRef(null);
-    const snapPoints = ['40%', '40%']; // variables
-    const snapPoints1 = ['30%', '30%']; // variables
+    const snapPoints = ['40%', '40%'];
+    const snapPoints1 = ['30%', '30%'];
     const handlePresetModal = useCallback(() => { bottomSheetModalRef.current?.present(); }, []);
     const handleClosePress = useCallback(() => { bottomSheetModalRef.current?.close(); }, []);
     const renderBackdrop = useCallback((props) => <BottomSheetBackdrop appearsOnIndex={0} disappearsOnIndex={-1} {...props} />, []);

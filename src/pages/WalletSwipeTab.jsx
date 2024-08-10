@@ -45,7 +45,7 @@ const WalletSwipeTab = ({ tokens, nfts, balance }) => {
                             return (
                                 <TouchableOpacity key={index} style={styles.data_bar_container} onPress={() => navigation.navigate('ChartPage')}>
                                     <View style={styles.row__}>
-                                        <Image source={ICONS.jsLogo} style={styles.icon_} resizeMode='contain' />
+                                        <Image source={{ uri: 'https://cdn.icon-icons.com/icons2/2429/PNG/512/ethereum_logo_icon_147293.png' }} style={styles.icon_} resizeMode='contain' />
                                         <View style={{ gap: scale(5) }}>
                                             <Text style={styles.token_name}>{item?.name}</Text>
                                             <Text style={styles.token_blance}>{(item?.balance) ? (parseFloat(item?.balance).toFixed(5)) : 0} {item?.symbol}</Text>

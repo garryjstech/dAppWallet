@@ -12,6 +12,8 @@ import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import { LinearGradient } from 'expo-linear-gradient';
 import { IMAGES } from '../constents/Images';
+import * as SecureStore from 'expo-secure-store';
+import { ethers } from 'ethers';
 // import { initializeWalletConnect, injectWeb3Provider } from '../utils/initializeWalletConnect';
 
 // import { ethers } from 'ethers';
@@ -23,13 +25,13 @@ const Browser = () => {
     useScrollToTop(ref);
     // const theme = useContext(themeContext);
     let defaultUrl = `https://www.alphawin.io`;
+    // let defaultUrl = `https://metaxmaker.com/`;
     const [url, setUrl] = useState(defaultUrl);
     const [inputUrl, setInputUrl] = useState(url);
     const [error, setError] = useState(null);
     const [canGoBack, setCanGoBack] = useState(false);
     const [canGoForward, setCanGoForward] = useState(false);
     const [progress, setProgress] = useState(0);
-    const [walletAddress, setWalletAddress] = useState(null);
     const webViewRef = useRef(null);
 
     const handleGoPress = () => {
@@ -65,21 +67,93 @@ const Browser = () => {
         }
     };
     ///////////////////////// WEB3 codes
+    const [walletAddress, setWalletAddress] = useState(null);
+    // console.log('walletAddress', walletAddress);
 
-    const [connector, setConnector] = useState(null);
-    const [injectedJS, setInjectedJS] = useState('');
 
-    // useEffect(() => {
-    //     const setupWalletConnect = async () => {
-    //         const connectorInstance = await initializeWalletConnect();
-    //         setConnector(connectorInstance);
-    //         if (connectorInstance.connected) {
-    //             const injectionScript = injectWeb3Provider(connectorInstance);
-    //             setInjectedJS(injectionScript);
+    // const handleWebViewMessage = (event) => {
+    //     const data = event.nativeEvent.data;
+    //     console.log('WebView message received:', data); // Log received message
+    //     if (data.startsWith('walletAddress:')) {
+    //         const address = data.replace('walletAddress:', '');
+    //         setWalletAddress(address);
+    //     } else if (data.startsWith('error:')) {
+    //         const errorMessage = data.replace('error:', '');
+    //         // setError(errorMessage);
+    //     }
+    // };
+
+
+
+    // const injectJavaScript = `
+    //     (function() {
+    //         console.log("Injecting JavaScript...");
+
+    //         if (typeof window.ethereum !== "undefined") {
+    //         console.log("Ethereum provider detected", window.ethereum);
+    //         window.ethereum.request({ method: 'eth_requestAccounts' })
+    //             .then(accounts => {
+    //             window.ReactNativeWebView.postMessage('walletAddress:' + accounts[0]);
+    //             })
+    //             .catch(error => {
+    //             window.ReactNativeWebView.postMessage('error:User denied account access - ' + error.message);
+    //             });
+    //         } else {
+    //         console.log("Ethereum provider not detected");
+    //         window.ReactNativeWebView.postMessage('error:Ethereum provider not detected');
     //         }
-    //     };
-    //     setupWalletConnect();
-    // }, []);
+    //     })();
+    //     `;
+
+    const [webViewLoaded, setWebViewLoaded] = useState(false);
+    const onWebViewLoadEnd = () => {
+        setWebViewLoaded(true);
+    };
+
+    const handleWebViewMessage = async (event) => {
+        const { method } = JSON.parse(event.nativeEvent.data);
+        console.log('Received message from WebView:', { method });
+
+        if (method === 'eth_requestAccounts' && webViewLoaded) {
+            try {
+                // Retrieve addresses from SecureStore
+                const storedAddressesString = await SecureStore.getItemAsync('ArrayAddress');
+                const storedAddresses = JSON.parse(storedAddressesString) || [];
+                console.log('Stored addresses:', storedAddresses);
+
+                // Send the addresses to the WebView
+                await webViewRef.current.postMessage(JSON.stringify(storedAddresses));
+
+
+            } catch (error) {
+                console.error('Error fetching accounts from SecureStore:', error);
+            }
+        }
+    };
+
+    const injectJavaScript = `
+        (function() {
+          window.ethereum = {
+            isMetaMask: true,
+            request: async ({ method }) => {
+              if (method === 'eth_requestAccounts') {
+                return new Promise((resolve) => {
+                  window.ReactNativeWebView.postMessage(JSON.stringify({ method: 'eth_requestAccounts' }));
+                  window.ReactNativeWebView.onmessage = (event) => {
+                    const data = JSON.parse(event.data);
+                    resolve(data);
+                  };
+                });
+              }
+              return null;
+            }
+          };
+        })();
+      `;
+
+
+
+
 
 
 
@@ -108,6 +182,9 @@ const Browser = () => {
 
                 <LinearGradient
                     colors={Colors.GRADIENTCOLOR}
+                    start={{ x: 0.5, y: 0.9 }}
+                    end={{ x: 0, y: 0.9 }}
+                    locations={[0.1, 0.3, 0.5, 0.7, 0.9, 1]}
                     style={[styles.progressBar, { width: `${progress * 100}%` }]}>
                 </LinearGradient>
 
@@ -132,9 +209,10 @@ const Browser = () => {
                             onHttpError={handleError}
                             onNavigationStateChange={handleNavigationStateChange}
                             onLoadProgress={({ nativeEvent }) => setProgress(nativeEvent.progress)}
+                            onLoadEnd={onWebViewLoadEnd}
 
-                            injectedJavaScript={injectedJS}
-                            onMessage={(event) => console.log(event.nativeEvent.data)}
+                            injectedJavaScript={injectJavaScript}
+                            onMessage={handleWebViewMessage}
                         />
                         {/* {connector && (
                             <Text>Connected Account: {connector.accounts[0]}</Text>
@@ -231,6 +309,7 @@ const styles = StyleSheet.create({
         padding: scale(10),
         borderTopWidth: 1,
         borderTopColor: Colors.GRAY,
+        marginBottom: Platform.OS === 'android' ? scale(0) : scale(-30)
     },
     progressBar: {
         height: scale(3),

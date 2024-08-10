@@ -5,7 +5,7 @@ export default COLORS = {
     BACKGROUND: `#454545`,
 
     PRIMARY: `#21CEF5`,
-    SECONDRY: ``,
+    SECONDRY: `#4c669f`,
 
     GRAY_05: "rgba(236, 236, 236,1)",
     //   BACKGROUND: "#F5F5F5",
@@ -25,5 +25,5 @@ export default COLORS = {
     WARRNING: "#f0ad4e",
 
     TRANSPARENT: "rgba(0,0,0,0.3)",
-    GRADIENTCOLOR: ['#4c669f', '#3b5998', '#192f6a']
+    GRADIENTCOLOR: ['#00b0db', '#028bb8', '#0a6f94', '#125b78', '#134b66', '#063146']
 }

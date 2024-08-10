@@ -18,6 +18,7 @@ const SendAmountConfirm = () => {
     const navigation = useNavigation();
     let route = useRoute();
     let data = route.params
+    // console.log('data', data);
 
 
 
@@ -29,48 +30,25 @@ const SendAmountConfirm = () => {
     const [isAccountName, setIsAccountName] = useState('')
     const [isAccountImage, setIsAccountImage] = useState('')
 
-    let accountOneAddress = `0xd45f34rgteg6gt4tret34erg54ter34tre43443f`
-
-    let arrayData = [
-        {
-            accountName: 'Account 1',
-            accountAddress: '0xqe134e324fgd56sdgf56hfg80dfgjfxnfe5y6r56',
-            acoountImage: ''
-        },
-        {
-            accountName: 'Account 2',
-            accountAddress: '0xq346r45gd43fdgyegdy4ftr6tfu6rfh6rur4etre',
-            acoountImage: ''
-        }, {
-            accountName: 'Account 3',
-            accountAddress: '0xqe134e324fgd56sdgf56hfg80dfgjfxnfe5y6r56',
-            acoountImage: ''
-        },
-        {
-            accountName: 'Account 4',
-            accountAddress: '0xq346r45gd43fdgyegdy4ftr6tfu6rfh6rur4etre',
-            acoountImage: ''
-        },
-
-    ]
-
-    let resetData = () => {
-        setIsAccountAddress(null)
-        setIsAccountName(null)
-        setIsAccountImage(null)
-    }
 
     const setFromWallet = async () => {
-        // console.log(arrayData);
         setIsFromAccountAddress(data?.addresses?.from)
-        setIsFromAccountName(arrayData[0]?.accountName)
-        setIsFromAccountImage()
+        setIsFromAccountName(data?.addresses?.fromName)
+        setIsFromAccountImage(data?.addresses?.fromImage)
     }
     useEffect(() => {
         setFromWallet()
         fetchAddresses()
-        gasEstimate()
-    }, [])
+        // gasEstimate()
+    }, [data])
+
+    // useEffect(() => {
+    //     const interval = setInterval(() => {
+    //         gasEstimate()
+    //     }, 10000);
+    //     return () => clearInterval(interval);
+    // }, []);
+
 
     const [isPRivateKey, setPrivateKey] = useState('')
     const fetchAddresses = async () => {
@@ -165,57 +143,67 @@ const SendAmountConfirm = () => {
     const [modalVisible, setModalVisible] = useState(false);
     ///////////////////////////////////////////
     const INFURA_URL = `https://sepolia.infura.io/v3/${INFURA_PROJECT_ID}`;
-    async function sendNativeCurrency() {
 
-        const provider = new ethers.providers.JsonRpcProvider(INFURA_URL);
-        const wallet = new ethers.Wallet(isPRivateKey[0]);
-        const tx = {
+    async function sendNativeCurrency() {
+        let provider = new ethers.providers.JsonRpcProvider(INFURA_URL);
+        let wallet = new ethers.Wallet(isPRivateKey[0]);
+        let tx = {
             to: data?.addresses?.to,
             value: ethers.utils.hexlify(ethers.utils.parseEther(data?.isAmount))
         };
-        const gasLimit = await provider.estimateGas({
+        let gasLimit = await provider.estimateGas({
             ...tx,
-            from: wallet.address
+            from: data?.addresses?.from
         });
 
-
-
-
         // Get current gas price
-        const gasPrice = await provider.getGasPrice();
+        let gasPrice = await provider.getGasPrice();
 
         // Complete the transaction object
         tx.gasLimit = ethers.utils.hexlify(gasLimit);
         tx.gasPrice = ethers.utils.hexlify(gasPrice);
-        tx.nonce = await provider.getTransactionCount(wallet.address);
+        tx.nonce = await provider.getTransactionCount(data?.addresses?.from);
 
         // Sign and send the transaction
-        const signedTx = await wallet.signTransaction(tx, isPRivateKey);
-        const sentTx = await provider.sendTransaction(signedTx);
+        let signedTx = await wallet.signTransaction(tx, isPRivateKey);
+        let sentTx = await provider.sendTransaction(signedTx);
 
         await sentTx.wait();
         console.log(`Transaction hash: ${sentTx.hash}`);
     }
 
     const [estimateGas, setEstimateGas] = useState(0)
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            gasEstimate();
+        }, 10000);
+        return () => clearInterval(interval);
+    }, [data]);
+
     const gasEstimate = async () => {
-        const provider = new ethers.providers.JsonRpcProvider(INFURA_URL);
+        if (!data || !isPRivateKey || !data.addresses || !data.addresses.to || !data.isAmount) {
+            return;
+        }
+        try {
+            let provider = new ethers.providers.JsonRpcProvider(INFURA_URL);
+            let wallet = new ethers.Wallet(isPRivateKey[0]);
+            let tx = { to: data.addresses.to, value: ethers.utils.hexlify(ethers.utils.parseEther(data.isAmount)) };
 
-        const wallet = new ethers.Wallet(isPRivateKey[0]);
-        const tx = {
-            to: data?.addresses?.to,
-            value: ethers.utils.hexlify(ethers.utils.parseEther(data?.isAmount))
-        };
-        const gasLimit = await provider.estimateGas({
-            ...tx,
-            from: wallet.address
-        });
-        const gasPrice = await provider.getGasPrice();
-
-        let gas = ethers.utils.formatUnits((gasLimit).toString()) * gasPrice;
-        setEstimateGas(gas)
-
+            console.log("tx", tx);
+            let gasLimit = await provider.estimateGas({ ...tx, from: data.addresses.from });
+            console.log("gasLimit", gasLimit);
+            let gasPrice = await provider.getGasPrice();
+            console.log('gasPrice', gasPrice);
+            let gas = ethers.utils.formatUnits(gasLimit.toString()) * gasPrice;
+            console.log({ gas });
+            setEstimateGas(gas);
+        } catch (error) {
+            console.error('Error estimating gas:', error);
+        }
     }
+
+
 
 
 
@@ -241,10 +229,10 @@ const SendAmountConfirm = () => {
                     <Pressable style={styles.bar_container}>
                         <View style={styles.bar_inner}>
                             <View style={styles.icon__}>
-                                <Image source={ICONS.jsLogo} style={styles.icon} resizeMode='contain' />
+                                <Image source={data?.addresses?.fromImage ? { uri: data?.addresses?.fromImage } : ICONS.jsLogo} style={styles.icon} resizeMode='contain' />
                             </View>
                             <View style={{ width: '80%', gap: scale(1) }}>
-                                <Text style={styles.text_14_w}>{isFromAccountName && isFromAccountName}</Text>
+                                <Text style={styles.text_14_w}>{isFromAccountName && `Account ` + isFromAccountName}</Text>
                                 <TextInput
                                     placeholder='Search public address (0x), or ENS'
                                     placeholderTextColor={Colors.PLACEHOLDER}
@@ -254,9 +242,7 @@ const SendAmountConfirm = () => {
                                 />
                             </View>
                         </View>
-                        {/* <TouchableOpacity style={{ padding: scale(8), width: '15%' }} onPress={() => handlePresetModal()}>
-                            <AntDesign name="down" size={scale(18)} color={Colors.WHITE} />
-                        </TouchableOpacity> */}
+
                     </Pressable>
                 </View>
 
@@ -267,10 +253,11 @@ const SendAmountConfirm = () => {
                     <View style={styles.bar_container}>
                         <View style={styles.bar_inner}>
                             <View style={styles.icon__}>
-                                <Image source={ICONS.jsLogo} style={styles.icon} resizeMode='contain' />
+                                <Image source={data?.addresses?.toImage ? { uri: data?.addresses?.toImage } : ICONS.jsLogo} style={styles.icon} resizeMode='contain' />
                             </View>
                             <View style={{ width: '80%', gap: scale(1) }}>
-                                <Text style={styles.text_14_w}>{'Account 2'}</Text>
+                                <Text style={styles.text_14_w}>{data?.addresses?.toName && data?.addresses?.toName}</Text>
+
                                 <TextInput
                                     placeholder='Search public address (0x), or ENS'
                                     placeholderTextColor={Colors.PLACEHOLDER}
@@ -297,7 +284,7 @@ const SendAmountConfirm = () => {
 
                 <View style={styles.input_container}>
                     <Text style={styles.text_12_g}>AMOUNT</Text>
-                    <Text style={styles.input__} >{(data?.isAmount) && (data?.isAmount)} ETH</Text>
+                    <Text style={styles.input__} >{(data?.isAmount) && parseFloat(data?.isAmount).toFixed(5)} ETH</Text>
                 </View>
                 <View style={[styles.bar_two_]}>
                     <View style={styles.row_}>
@@ -532,7 +519,7 @@ const styles = StyleSheet.create({
     },
     input_: {
         fontSize: scale(12),
-        fontFamily: 'RalewayBold',
+        fontFamily: 'LatoBold',
         color: Colors.WHITE,
     },
     select_box: {
