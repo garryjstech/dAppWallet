@@ -1,4 +1,4 @@
-import { ActivityIndicator, Alert, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import React, { useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { moderateScale, scale, verticalScale } from 'react-native-size-matters';
@@ -7,6 +7,8 @@ import { useNavigation } from '@react-navigation/native';
 import { ethers } from 'ethers';
 import * as SecureStore from 'expo-secure-store';
 import { useAlert } from '../contexts/ToasterContext';
+import Ionicons from '@expo/vector-icons/Ionicons';
+
 
 const ImportPharse = () => {
     const navigation = useNavigation();
@@ -100,6 +102,9 @@ const ImportPharse = () => {
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header_}>
+                <Pressable style={styles.backBtn} onPress={() => navigation.goBack()}>
+                    <Ionicons name="arrow-back-sharp" size={scale(24)} color={Colors.WHITE} />
+                </Pressable>
                 <Text style={styles.header_text_}>Import from Secret Recovery Phrase</Text>
             </View>
 
@@ -192,11 +197,17 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.BACKGROUND
     },
     header_: {
-        marginTop: scale(15),
-        justifyContent: 'space-between',
+        flexDirection: 'row',
         alignItems: 'center',
-        height: '12%',
+        // gap: scale(10),
+        height: scale(50),
         paddingHorizontal: moderateScale(20),
+    },
+    backBtn: {
+        width: scale(40),
+        height: scale(40),
+        borderRadius: scale(40),
+        justifyContent: 'center',
     },
     header_text_: {
         fontSize: scale(14),

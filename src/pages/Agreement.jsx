@@ -52,18 +52,21 @@ const Agreement = () => {
                         onValueChange={setChecked}
                         color={isChecked ? Colors.PRIMARY : undefined}
                     />
-                    <Text style={styles.text_13}>We’ll use this data to learn how you interact with our marketing communications. we may share relavent news (like product features).</Text>
+                    <Text style={styles.text_13} onPress={() => setChecked(!isChecked)}>We’ll use this data to learn how you interact with our marketing communications. we may share relavent news (like product features).</Text>
 
                 </View>
             </ScrollView>
             <View style={styles.footer_}>
                 <View style={styles.row_}>
 
-                    <TouchableOpacity style={styles.button_}>
+                    <TouchableOpacity style={styles.button_} onPress={() => navigation.goBack()}>
                         <Text style={styles.text_14}>No Thanks</Text>
                     </TouchableOpacity>
 
-                    <TouchableOpacity style={[styles.button_, { backgroundColor: Colors.PRIMARY }]} onPress={() => navigation.navigate('NewWallet')}>
+                    <TouchableOpacity
+                        style={[styles.button_, { backgroundColor: Colors.PRIMARY }]}
+                        disabled={!isChecked}
+                        onPress={() => navigation.navigate('NewWallet')}>
                         <Text style={[styles.text_14, { color: Colors.WHITE }]}>I agree</Text>
                     </TouchableOpacity>
                 </View>

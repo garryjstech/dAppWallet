@@ -63,7 +63,7 @@ const NewWallet = () => {
                         onValueChange={setChecked}
                         color={isChecked ? Colors.PRIMARY : undefined}
                     />
-                    <Text style={styles.para_}>I understand that {'WEB3 Wallet'} connot recover this password for me.</Text>
+                    <Text style={styles.para_} onPress={() => setChecked(!isChecked)}>I understand that {'WEB3 Wallet'} connot recover this password for me.</Text>
                 </View>
             </View>
 
@@ -71,7 +71,7 @@ const NewWallet = () => {
 
             <View style={styles.footer}>
                 <View style={styles.button_container}>
-                    <TouchableOpacity style={[styles.button_, { backgroundColor: Colors.PRIMARY }]} onPress={() => navigation.navigate('SecureWallet')}>
+                    <TouchableOpacity style={[styles.button_, { backgroundColor: Colors.PRIMARY }]} disabled={!isChecked} onPress={() => navigation.navigate('SecureWallet')}>
                         <Text style={styles.text_14}>Create Password</Text>
                     </TouchableOpacity>
                 </View>

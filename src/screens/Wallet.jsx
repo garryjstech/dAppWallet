@@ -31,7 +31,7 @@ const Wallet = () => {
     const [info, setInfo] = useState('');
     const [isPrivateKey, setPrivateKey] = useState([]);
     const [walletAddresses, setWalletAddresses] = useState([]);
-    const [isFromAccountImage, setIsFromAccountImage] = useState([])
+    const [isFromAccountImage, setIsFromAccountImage] = useState('')
 
     const [walletData, setWalletData] = useState([]);
     const [tokenDetails, setTokenDetails] = useState();

@@ -52,7 +52,7 @@ export default function App() {
         <SafeAreaProvider style={{ flex: 1, backgroundColor: Colors.WHITE }} onLayout={onLayoutRootView} >
           <BottomSheetModalProvider>
 
-            <StatusBar style='dark' animated={true} />
+            <StatusBar style='inverted' animated={true} />
             <Roots />
 
           </BottomSheetModalProvider>
